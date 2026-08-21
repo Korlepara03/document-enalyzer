@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: document-enalyzer
+Version: 0.1.0
+Summary: A small Python agent for analyzing documents.
+Requires-Python: >=3.9
+License-File: LICENSE
+Provides-Extra: pdf
+Requires-Dist: pypdf>=4.0; extra == "pdf"
+Provides-Extra: docx
+Requires-Dist: python-docx>=1.1; extra == "docx"
+Dynamic: license-file
+Dynamic: provides-extra
+Dynamic: requires-python
+Dynamic: summary

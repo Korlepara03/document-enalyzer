@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Document Enalyzer</title>
+  <style>
+    :root { color-scheme: light; --ink: #17221f; --muted: #65726d; --paper: #f6f4ee; --accent: #e5673f; --line: #d9ded8; --good: #28745a; --warn: #a86b2d; }
+    * { box-sizing: border-box; } body { margin: 0; background: var(--paper); color: var(--ink); font: 16px Georgia, serif; }
+    main { max-width: 980px; margin: 0 auto; padding: 72px 24px; } h1 { font-size: clamp(2.5rem, 7vw, 5.5rem); line-height: .95; max-width: 650px; margin: 0 0 18px; letter-spacing: -2px; }
+    .intro { color: var(--muted); font: 1rem Arial, sans-serif; max-width: 560px; line-height: 1.6; margin-bottom: 42px; }
+    form { border: 1px solid var(--line); background: #fffdf8; padding: 28px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    input[type=file] { flex: 1; min-width: 230px; font: .95rem Arial, sans-serif; } .field { flex: 1; min-width: 230px; } label { display: block; color: var(--muted); font: bold .75rem Arial, sans-serif; margin-bottom: 7px; text-transform: uppercase; letter-spacing: .08em; } button { border: 0; background: var(--accent); color: white; padding: 13px 22px; font: bold .9rem Arial, sans-serif; cursor: pointer; } button:disabled { opacity: .55; cursor: wait; }
+    #status { color: var(--muted); font: .9rem Arial, sans-serif; margin: 20px 0; } .results { display: none; margin-top: 32px; } h2 { font-size: 1.8rem; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+    dl { display: grid; grid-template-columns: minmax(130px, .4fr) 1fr; margin: 0; font: .95rem Arial, sans-serif; } dt, dd { margin: 0; padding: 14px 10px; border-bottom: 1px solid var(--line); } dt { font-weight: bold; } dd { color: var(--muted); } .match-summary { display: grid; grid-template-columns: 180px 1fr; gap: 24px; align-items: center; margin-bottom: 28px; } .score { font: bold 3.8rem Georgia, serif; color: var(--good); } .score small { display: block; color: var(--muted); font: bold .75rem Arial, sans-serif; text-transform: uppercase; letter-spacing: .08em; } .match-summary p { color: var(--muted); font: .95rem Arial, sans-serif; line-height: 1.5; } .skill-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; } .skill { border: 1px solid var(--line); padding: 7px 10px; font: .82rem Arial, sans-serif; } .skill.missing { color: var(--warn); border-color: #e5c9a8; } .evidence { margin-bottom: 28px; }
+    pre { white-space: pre-wrap; background: #17221f; color: #f6f4ee; padding: 22px; line-height: 1.5; overflow: auto; font: .9rem Consolas, monospace; }
+    @media (max-width: 600px) { main { padding: 42px 18px; } form { padding: 18px; } dl { grid-template-columns: 1fr; } dt { border-bottom: 0; padding-bottom: 4px; } dd { padding-top: 4px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Read the document.<br>Keep the signal.</h1>
+    <p class="intro">Upload a resume or document and an optional job description. The agent extracts readable text, finds key/value fields, and gives an evidence-based match report.</p>
+    <form id="upload-form">
+      <div class="field"><label for="document">Document to analyze</label><input id="document" name="document" type="file" accept=".txt,.md,.markdown,.pdf,.docx" required></div>
+      <div class="field"><label for="job-description">Job description</label><input id="job-description" name="job_description" type="file" accept=".txt,.md,.markdown,.pdf,.docx"></div>
+      <button type="submit">Extract document</button>
+    </form>
+    <p id="status" aria-live="polite">Ready for a document.</p>
+    <section class="results" id="results">
+      <h2 id="filename"></h2><section id="match-report" hidden><h2>Job match</h2><div class="match-summary"><div class="score" id="score"></div><p id="match-level"></p></div><h3>Matched skills</h3><div class="skill-list" id="matched-skills"></div><h3>Missing skills</h3><div class="skill-list" id="missing-skills"></div><h3>Evidence</h3><dl class="evidence" id="evidence"></dl></section><h2>Detected fields</h2><dl id="fields"></dl><h2>Extracted text</h2><pre id="text"></pre>
+    </section>
+  </main>
+  <script>
+    const form = document.querySelector('#upload-form'); const status = document.querySelector('#status'); const results = document.querySelector('#results'); const matchReport = document.querySelector('#match-report');
+    function renderSkills(target, skills, missing = false) { target.innerHTML = ''; skills.forEach((skill) => { const item = document.createElement('span'); item.className = `skill${missing ? ' missing' : ''}`; item.textContent = skill; target.append(item); }); if (!skills.length) target.textContent = 'None identified'; }
+    function renderMatch(match) { if (!match) { matchReport.hidden = true; return; } matchReport.hidden = false; document.querySelector('#score').innerHTML = `${match.confidence_score}%<small>confidence</small>`; document.querySelector('#match-level').textContent = `${match.match_level}. ${match.matched_skill_count} of ${match.required_skill_count} job-description skills were found in the uploaded document.`; renderSkills(document.querySelector('#matched-skills'), match.matched_skills); renderSkills(document.querySelector('#missing-skills'), match.missing_skills, true); const evidence = document.querySelector('#evidence'); evidence.innerHTML = ''; Object.entries(match.evidence).forEach(([skill, line]) => { const dt = document.createElement('dt'); dt.textContent = skill; const dd = document.createElement('dd'); dd.textContent = line; evidence.append(dt, dd); }); }
+    form.addEventListener('submit', async (event) => { event.preventDefault(); const button = form.querySelector('button'); button.disabled = true; status.textContent = 'Extracting…'; results.style.display = 'none';
+      try { const response = await fetch('/api/extract', { method: 'POST', body: new FormData(form) }); const data = await response.json(); if (!response.ok) throw new Error(data.error);
+        document.querySelector('#filename').textContent = data.filename; renderMatch(data.job_match); const fields = document.querySelector('#fields'); fields.innerHTML = ''; Object.entries(data.key_values).forEach(([key, value]) => { const dt = document.createElement('dt'); dt.textContent = key; const dd = document.createElement('dd'); dd.textContent = value; fields.append(dt, dd); }); if (!Object.keys(data.key_values).length) fields.innerHTML = '<dt>No labeled fields found</dt><dd>None detected in this document.</dd>'; document.querySelector('#text').textContent = data.text; results.style.display = 'block'; status.textContent = `${data.statistics.words} words extracted.`;
+      } catch (error) { status.textContent = error.message; } finally { button.disabled = false; }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+LICENSE
+README.md
+setup.py
+document_agent/__init__.py
+document_agent/agent.py
+document_agent/server.py
+document_agent/web/index.html
+document_enalyzer.egg-info/PKG-INFO
+document_enalyzer.egg-info/SOURCES.txt
+document_enalyzer.egg-info/dependency_links.txt
+document_enalyzer.egg-info/entry_points.txt
+document_enalyzer.egg-info/requires.txt
+document_enalyzer.egg-info/top_level.txt

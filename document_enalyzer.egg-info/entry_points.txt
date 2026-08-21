@@ -1,0 +1,3 @@
+[console_scripts]
+document-agent = document_agent.agent:main
+document-server = document_agent.server:main
