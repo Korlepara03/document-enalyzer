@@ -6,9 +6,9 @@ Upload documents, extract their text, summarize them, and compare them with a jo
 
 ```bash
 python -m pip install -e .
-python -m document_agent.server
+python -m document_agent.server 
 ```
-
+  
 Do not run `pip install document-server`: `document-server` is a command provided by this local project, not a package on PyPI. After installation, `document-server` also works if Python's Scripts directory is on your `PATH`.
 
 Open http://127.0.0.1:8000 and upload a `.txt`, `.md`, `.pdf`, or `.docx` file. You can also upload a job description to receive an explainable 0-100 confidence score with matched skills, missing skills, and evidence lines. PDF and DOCX support is optional:
